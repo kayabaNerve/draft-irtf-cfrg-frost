@@ -1832,8 +1832,8 @@ commitments into a bytestring for use in the FROST protocol.<a href="#section-4.
     encoded_group_commitment = nil
     for (identifier, hiding_nonce_commitment, binding_nonce_commitment) in commitment_list:
       encoded_commitment = G.SerializeScalar(identifier) ||
-                           G.SerializePrimeOrderElement(hiding_nonce_commitment) ||
-                           G.SerializePrimeOrderElement(binding_nonce_commitment)
+                           G.SerializeElement(hiding_nonce_commitment) ||
+                           G.SerializeElement(binding_nonce_commitment)
       encoded_group_commitment = encoded_group_commitment || encoded_commitment
     return encoded_group_commitment
 </pre><a href="#section-4.3-2" class="pilcrow">¶</a>
@@ -1965,7 +1965,7 @@ from a commitment list.<a href="#section-4.5-1" class="pilcrow">¶</a></p>
   Outputs: A Scalar representing the challenge
 
   def compute_challenge(group_commitment, group_public_key, msg):
-    group_comm_enc = G.SerializePrimeOrderElement(group_commitment)
+    group_comm_enc = G.SerializeElement(group_commitment)
     group_public_key_enc = G.SerializeElement(group_public_key)
     challenge_input = group_comm_enc || group_public_key_enc || msg
     challenge = H2(challenge_input)
@@ -2124,9 +2124,10 @@ a pair of secret nonces <code>(hiding_nonce, binding_nonce)</code> and their cor
 </div>
 <p id="section-5.1-3">The outputs <code>nonce</code> and <code>comm</code> from participant <code>P_i</code> should both be stored locally and
 kept for use in the second round. The <code>nonce</code> value is secret and MUST NOT be shared, whereas
-the public output <code>comm</code> is sent to the Coordinator. The nonce values produced by this
-function MUST NOT be reused in more than one invocation of FROST, and it MUST be generated
-from a source of secure randomness.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+the public output <code>comm</code> is sent to the Coordinator, serializing group Elements using
+<code>SerializePrimeOrderElement</code> from <a href="#dep-pog" class="xref">Section 3.1</a>. The nonce values produced by this function MUST NOT
+be reused in more than one invocation of FROST, and it MUST be generated from a source of secure
+randomness.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="frost-round-two">
@@ -2139,12 +2140,12 @@ for choosing which participants will participate (of number at least MIN_PARTICI
 additionally require locally held data; specifically, their private key and the
 nonces corresponding to their commitment issued in round one.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
 <p id="section-5.2-2">The Coordinator begins by sending each participant the message to be signed along with the
-set of signing commitments for all participants in the participant list. Each participant
-MUST validate the inputs before processing the Coordinator's request. In particular,
-the Signer MUST validate commitment_list, deserializing each group Element in the
-list using DeserializePrimeOrderElement from <a href="#dep-pog" class="xref">Section 3.1</a>. If deserialization fails, the Signer
-MUST abort the protocol. Moreover, each participant MUST ensure that their identifier as
-well as their commitment as from the first round appears in commitment_list.
+set of signing commitments for all participants in the participant list, serializing each group
+Element using SerializePrimeOrderElement from <a href="#dep-pog" class="xref">Section 3.1</a>. Each participant MUST validate the inputs
+before processing the Coordinator's request. In particular, the Signer MUST validate commitment_list,
+deserializing each group Element in the list using DeserializePrimeOrderElement from <a href="#dep-pog" class="xref">Section 3.1</a>.
+If deserialization fails, the Signer MUST abort the protocol. Moreover, each participant MUST ensure
+that their identifier as well as their commitment as from the first round appears in commitment_list.
 Applications which require that participants not process arbitrary
 input messages are also required to also perform relevant application-layer input
 validation checks; see <a href="#message-validation" class="xref">Section 7.5</a> for more details.<a href="#section-5.2-2" class="pilcrow">¶</a></p>
@@ -2901,7 +2902,7 @@ key as input (as opposed to a key share.)<a href="#appendix-B-2" class="pilcrow"
     r = G.RandomScalar()
     R = G.ScalarBaseMult(r)
     PK = G.ScalarBaseMult(sk)
-    comm_enc = G.SerializePrimeOrderElement(R)
+    comm_enc = G.SerializeElement(R)
     pk_enc = G.SerializeElement(PK)
     challenge_input = comm_enc || pk_enc || msg
     c = H2(challenge_input)
@@ -2923,7 +2924,7 @@ Specifically, it assumes that signature R component and public key belong to the
   Outputs: 1 if signature is valid, and 0 otherwise
 
   def prime_order_verify(msg, sig = (R, z), PK):
-    comm_enc = G.SerializePrimeOrderElement(R)
+    comm_enc = G.SerializeElement(R)
     pk_enc = G.SerializeElement(PK)
     challenge_input = comm_enc || pk_enc || msg
     c = H2(challenge_input)
